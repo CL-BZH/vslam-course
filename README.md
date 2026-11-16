@@ -10,7 +10,7 @@ Python practical.
 | Part | Chapters | Status |
 |---|---|---|
 | I. Foundations | 1 The SLAM problem · 2 Rigid motion and Lie groups · 3 Cameras · 4 Nonlinear least squares on manifolds | drafted |
-| II. Visual front-end | 5 Features and correspondence · 6 Two-view geometry · 7 Visual odometry | planned |
+| II. Visual front-end | 5 Features and correspondence · 6 Two-view geometry · 7 Visual odometry | 5 drafted |
 | III. Back-end | 8 Bundle adjustment · 9 Factor and pose graphs · 10 Loop closure · 11 Maps for a mower | planned |
 | IV. Fusion for the garden | 12 The IMU · 13 Visual-inertial odometry · 14 Wheels and RTK-GNSS · 15 Capstone | planned |
 
@@ -56,6 +56,9 @@ cd notebooks && jupyter lab
 - `examples/ch04_least_squares.py` — Gauss-Newton's linear rate and its
   failure on a large-residual problem, finishing the Chapter 3
   calibration with GN and LM, robust kernels against outliers.
+- `examples/ch05_features.py` — synthetic garden and lawn textures,
+  matching precision under viewpoint, lighting and wind, the RANSAC
+  iteration law, pyramidal Lucas-Kanade.
 
 ## Notebooks
 
@@ -76,3 +79,7 @@ committed with their outputs, so they can be read directly on GitHub.
 - `notebooks/ch04_least_squares.ipynb`: the Gauss-Newton rate, LM's
   damping and gain ratio, the finished calibration, Laplace covariance
   against Monte Carlo, IRLS weights on outliers, optimising on SO(3).
+- `notebooks/ch05_features.ipynb`: structure-tensor eigenvalues, steered
+  vs plain BRIEF under rotation, the ratio test, the lawn in the wind for
+  matching and tracking, the aperture problem, RANSAC's adaptive count,
+  and OpenCV's ORB.
