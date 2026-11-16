@@ -27,9 +27,11 @@ def required_iterations(w: float, s: int, p: float = 0.99) -> int:
     with probability p when the inlier ratio is w."""
     if w >= 1.0:
         return 1
-    if w <= 0.0:
+    ws = w ** s if w > 0.0 else 0.0
+    if ws <= 0.0:
         return np.iinfo(np.int64).max
-    return int(np.ceil(np.log(1.0 - p) / np.log(1.0 - w ** s)))
+    # log1p keeps precision when w^s is tiny (1 - w^s would round to 1)
+    return int(np.ceil(np.log(1.0 - p) / np.log1p(-ws)))
 
 
 @dataclass
