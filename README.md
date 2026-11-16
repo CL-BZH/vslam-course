@@ -10,7 +10,7 @@ Python practical.
 | Part | Chapters | Status |
 |---|---|---|
 | I. Foundations | 1 The SLAM problem · 2 Rigid motion and Lie groups · 3 Cameras · 4 Nonlinear least squares on manifolds | drafted |
-| II. Visual front-end | 5 Features and correspondence · 6 Two-view geometry · 7 Visual odometry | 5–6 drafted |
+| II. Visual front-end | 5 Features and correspondence · 6 Two-view geometry · 7 Visual odometry | drafted |
 | III. Back-end | 8 Bundle adjustment · 9 Factor and pose graphs · 10 Loop closure · 11 Maps for a mower | planned |
 | IV. Fusion for the garden | 12 The IMU · 13 Visual-inertial odometry · 14 Wheels and RTK-GNSS · 15 Capstone | planned |
 
@@ -62,6 +62,8 @@ cd notebooks && jupyter lab
 - `examples/ch06_twoview.py` — eight-point, five-point and homography
   relative pose on a lawn versus a garden and towards pure rotation;
   triangulation accuracy and the forward-motion blind spot.
+- `examples/ch07_vo.py` — PnP with outliers and on a lawn, stereo VO on a
+  simulated garden mown in rows (keyframe vs frame-to-frame), drift.
 
 ## Notebooks
 
@@ -89,3 +91,6 @@ committed with their outputs, so they can be read directly on GitHub.
 - `notebooks/ch06_twoview.ipynb`: epipolar lines, the four decompositions,
   estimators on lawns and gardens, the planar twin solution, choosing
   between homography and essential matrix, parallax.
+- `notebooks/ch07_vo.ipynb`: linear PnP and its planar degeneracy, the
+  four P3P solutions, robust refinement, the simulated garden, running
+  the VO, the drift law against Monte Carlo, ATE versus RPE.
