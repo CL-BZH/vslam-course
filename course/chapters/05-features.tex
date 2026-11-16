@@ -302,7 +302,8 @@ The cost of RANSAC is exponential in the sample size. That is the whole
 reason minimal solvers exist and why the five-point algorithm of
 Chapter~6 matters more than its eight-point cousin: at $w=0.3$, which
 is not pessimistic on a lawn, it is the difference between about two
-thousand hypotheses and seventy thousand. In practice $w$ is unknown, so $N$ is updated from
+thousand hypotheses and seventy thousand. In practice $w$ is unknown,
+so $N$ is updated from
 the best consensus set found so far (adaptive termination); the notebook
 shows that this estimate is slightly pessimistic, so RANSAC draws more
 samples than \eqref{eq:ransacN} with the true $w$. The threshold comes
