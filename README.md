@@ -11,7 +11,7 @@ Python practical.
 |---|---|---|
 | I. Foundations | 1 The SLAM problem · 2 Rigid motion and Lie groups · 3 Cameras · 4 Nonlinear least squares on manifolds | drafted |
 | II. Visual front-end | 5 Features and correspondence · 6 Two-view geometry · 7 Visual odometry | drafted |
-| III. Back-end | 8 Bundle adjustment · 9 Factor and pose graphs · 10 Loop closure · 11 Maps for a mower | 8 drafted |
+| III. Back-end | 8 Bundle adjustment · 9 Factor and pose graphs · 10 Loop closure · 11 Maps for a mower | 8–9 drafted |
 | IV. Fusion for the garden | 12 The IMU · 13 Visual-inertial odometry · 14 Wheels and RTK-GNSS · 15 Capstone | planned |
 
 ## Layout
@@ -67,6 +67,9 @@ cd notebooks && jupyter lab
 - `examples/ch08_ba.py` — structure of the normal equations and cost of
   the Schur complement, covariances against Monte Carlo, the VO with a
   sliding-window bundle adjustment.
+- `examples/ch09_posegraph.py` — pose-graph optimisation of the VO with
+  loop closures between rows, wrong loops and robust kernels,
+  marginalisation and the linearisation point.
 
 ## Notebooks
 
@@ -100,3 +103,6 @@ committed with their outputs, so they can be read directly on GitHub.
 - `notebooks/ch08_ba.ipynb`: the arrowhead, Schur step against the dense
   step, the gauge, solving and the chi-square check, covariance against
   Monte Carlo, local BA in the VO.
+- `notebooks/ch09_posegraph.ipynb`: the SE(3) right Jacobian, a loop
+  around a square, the garden pose graph and the odometry noise model,
+  wrong loops, marginalisation and the gauge.

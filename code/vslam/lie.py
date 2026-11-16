@@ -206,3 +206,49 @@ def jac_compose(T1: np.ndarray, T2: np.ndarray
 def jac_inv(T: np.ndarray) -> np.ndarray:
     """Jacobian of T^{-1} w.r.t. T: -Ad_T."""
     return -se3_adjoint(T)
+
+
+# --------------------------------------------------------------------------
+# SE(3) Jacobians (Chapter 9)
+# --------------------------------------------------------------------------
+def se3_ad(xi: np.ndarray) -> np.ndarray:
+    """6x6 matrix ad(xi) = [[hat(phi), hat(rho)], [0, hat(phi)]], the
+    derivative of Ad at the identity: [hat(a), hat(b)] = hat(ad(a) b)."""
+    A = np.zeros((6, 6))
+    A[:3, :3] = hat(xi[3:])
+    A[:3, 3:] = hat(xi[:3])
+    A[3:, 3:] = hat(xi[3:])
+    return A
+
+
+# Bernoulli numbers B_0..B_20 (B_1 = -1/2 convention)
+_BERNOULLI = [1.0, -0.5, 1 / 6, 0.0, -1 / 30, 0.0, 1 / 42, 0.0, -1 / 30, 0.0,
+              5 / 66, 0.0, -691 / 2730, 0.0, 7 / 6, 0.0, -3617 / 510, 0.0,
+              43867 / 798, 0.0, -174611 / 330]
+
+
+def se3_right_jacobian(xi: np.ndarray, terms: int = 20) -> np.ndarray:
+    """J_r(xi) = sum_n (-ad xi)^n / (n+1)!, so that
+    Exp(xi + d) ~= Exp(xi) Exp(J_r(xi) d)."""
+    A = -se3_ad(xi)
+    J, term = np.eye(6), np.eye(6)
+    fact = 1.0
+    for n in range(1, terms):
+        term = term @ A
+        fact *= n + 1
+        J = J + term / fact
+    return J
+
+
+def se3_right_jacobian_inv(xi: np.ndarray) -> np.ndarray:
+    """J_r(xi)^{-1} = sum_n B_n (-ad xi)^n / n!  (valid for |phi| < 2 pi),
+    so that Log(Exp(xi) Exp(d)) ~= xi + J_r(xi)^{-1} d."""
+    A = -se3_ad(xi)
+    J, term = np.eye(6), np.eye(6)
+    fact = 1.0
+    for n in range(1, len(_BERNOULLI)):
+        term = term @ A
+        fact *= n
+        if _BERNOULLI[n] != 0.0:
+            J = J + _BERNOULLI[n] * term / fact
+    return J

@@ -142,3 +142,26 @@ def test_jac_compose_and_inverse():
     assert np.allclose(J2, num_jac_group(lambda X: T1 @ X, T2), atol=1e-6)
     assert np.allclose(lie.jac_inv(T1), num_jac_group(lie.se3_inv, T1),
                        atol=1e-6)
+
+
+@pytest.mark.parametrize("scale", [1e-6, 0.1, 1.0])
+def test_se3_right_jacobian_and_inverse(scale):
+    xi = scale * RNG.normal(size=6)
+    Jr = lie.se3_right_jacobian(xi)
+    eps = 1e-6
+    T_inv = lie.se3_inv(lie.se3_exp(xi))
+    num = np.column_stack([
+        (lie.se3_log(T_inv @ lie.se3_exp(xi + d))
+         - lie.se3_log(T_inv @ lie.se3_exp(xi - d))) / (2 * eps)
+        for d in eps * np.eye(6)])
+    assert np.allclose(Jr, num, atol=1e-6)
+    assert np.allclose(lie.se3_right_jacobian_inv(xi) @ Jr, np.eye(6),
+                       atol=1e-8)
+    # the SO(3) block is the SO(3) right Jacobian
+    assert np.allclose(Jr[3:, 3:], lie.so3_right_jacobian(xi[3:]))
+
+
+def test_se3_ad_is_derivative_of_adjoint():
+    xi, x = RNG.normal(size=6), RNG.normal(size=6)
+    lhs = lie.se3_hat(xi) @ lie.se3_hat(x) - lie.se3_hat(x) @ lie.se3_hat(xi)
+    assert np.allclose(lhs, lie.se3_hat(lie.se3_ad(xi) @ x))
