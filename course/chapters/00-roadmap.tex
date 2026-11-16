@@ -1,0 +1,122 @@
+\chapter*{Roadmap}
+\addcontentsline{toc}{chapter}{Roadmap}
+\markboth{Roadmap}{Roadmap}
+
+\section*{Why this course, and why this order}
+
+The goal is a robot lawnmower that knows where it is on the lawn and builds
+a map of it. A camera is the cheapest rich sensor we can put on it, so the
+backbone of the course is \emph{visual} SLAM (Simultaneous Localisation And
+Mapping). But a lawn is a notoriously hard scene for vision: the grass is a
+repetitive texture, the light changes with clouds and time of day, shadows
+move, and the few stable features (fences, trees, the house) are often far
+away. Every serious outdoor mower therefore fuses vision with an inertial
+measurement unit (IMU), wheel odometry and, when the sky is open, RTK-GNSS.
+The course follows that path: first pure geometry and optimisation, then the
+visual pipeline, then the back-end that makes it globally consistent, and
+finally the fusion that makes it robust enough for the garden.
+
+You already know Bayesian filtering (Kalman and particle filters, from your
+\code{Bayesian\_Filters} repository), measure-theoretic probability and
+metric topology. The course uses this freely: filtering is not re-taught,
+it is \emph{compared} with the smoothing/optimisation view that dominates
+modern SLAM.
+
+\section*{Structure}
+
+\begin{description}[leftmargin=1.5em,style=nextline]
+\item[Part I --- Foundations]
+  \begin{enumerate}[label=\arabic*.,leftmargin=2em]
+  \item \textbf{The SLAM problem.} Probabilistic formulation, the full joint
+    posterior, MAP estimation as nonlinear least squares, factor graphs,
+    filtering versus smoothing, observability and gauge freedom.
+  \item \textbf{Rigid motion and Lie groups.} $\SO3$, $\SE3$, their Lie
+    algebras, $\Exp$/$\Log$ in closed form, left and right Jacobians,
+    adjoints, uncertainty on manifolds, perturbation calculus.
+  \item \textbf{Cameras.} Pinhole projection, lens distortion, intrinsic
+    calibration (Zhang's method), stereo and RGB-D models, the Jacobians of
+    projection.
+  \item \textbf{Nonlinear least squares on manifolds.} Gauss--Newton,
+    Levenberg--Marquardt, trust regions, robust kernels (Huber, Cauchy) as
+    iteratively reweighted least squares, optimisation with retractions.
+  \end{enumerate}
+\item[Part II --- The visual front-end]
+  \begin{enumerate}[label=\arabic*.,leftmargin=2em,start=5]
+  \item \textbf{Features and correspondence.} Corners (Harris, FAST),
+    binary descriptors (ORB, BRIEF), matching, Lucas--Kanade optical flow,
+    RANSAC and its probability analysis.
+  \item \textbf{Two-view geometry.} Epipolar constraint, essential and
+    fundamental matrices, eight- and five-point algorithms, decomposition
+    of $E$, triangulation (linear and optimal), degenerate configurations
+    (pure rotation, planar scenes --- the lawn!).
+  \item \textbf{Visual odometry.} Perspective-$n$-Point, motion-only bundle
+    adjustment, keyframes, a complete monocular/stereo VO pipeline, scale
+    drift.
+  \end{enumerate}
+\item[Part III --- The back-end]
+  \begin{enumerate}[label=\arabic*.,leftmargin=2em,start=8]
+  \item \textbf{Bundle adjustment.} The full problem, sparsity structure,
+    the Schur complement, gauge fixing, covariance recovery.
+  \item \textbf{Factor graphs and pose graphs.} Pose-graph optimisation,
+    sliding windows, marginalisation and its consistency issues
+    (first-estimate Jacobians), incremental smoothing (iSAM2 ideas).
+  \item \textbf{Loop closure and relocalisation.} Bag of visual words,
+    place recognition, $\mathrm{Sim}(3)$ alignment for monocular scale,
+    outlier-robust loop closure.
+  \item \textbf{Maps for a mower.} Sparse versus dense maps, depth fusion,
+    ground-plane extraction, a 2D occupancy/coverage map that plugs into
+    your \code{Lawnmower} coverage planners.
+  \end{enumerate}
+\item[Part IV --- Fusion for the garden]
+  \begin{enumerate}[label=\arabic*.,leftmargin=2em,start=12]
+  \item \textbf{The IMU.} Sensor model, biases and noise (Allan variance),
+    kinematics on $\SO3$, on-manifold preintegration with full derivations.
+  \item \textbf{Visual--inertial odometry.} Filtering (MSCKF) versus
+    optimisation (sliding-window VIO), initialisation, observability.
+  \item \textbf{Wheels and satellites.} Differential-drive odometry and
+    slip, RTK-GNSS factors, frame alignment (ENU/local map), handling
+    tree-canopy outages.
+  \item \textbf{Capstone: a mower localisation stack.} Assembling the
+    pieces, evaluation (ATE/RPE), a simulated garden, and the path to the
+    PG98~HK hardware.
+  \end{enumerate}
+\end{description}
+
+\section*{How each chapter is built}
+
+Each chapter mixes four kinds of boxes. \textcolor{defblue}{Blue} boxes
+are definitions, \textcolor{thmred}{red} boxes theorems,
+\textcolor{propamber}{amber} boxes propositions and lemmas, all with full
+proofs. \textcolor{wordsgreen}{Green} \emph{In words} boxes say what a
+formula means and why we want it. Grey \emph{Practice} boxes point to code
+in the companion repository, and \textcolor{lawngreen!70!black}{On the
+lawn} boxes connect the material to the mower.
+
+\section*{The companion code}
+
+The Python package \code{vslam} grows chapter by chapter. Everything is
+written from scratch with NumPy (and OpenCV only for image I/O and, later,
+feature detection), so that every formula in these notes has a line of
+code you can read. Every analytic Jacobian is checked against a numerical
+one in the test suite. Where production systems do things differently, the
+text points to the corresponding C++ components (Sophus, g2o, GTSAM,
+Ceres, ORB-SLAM3, VINS-Fusion). No GPU is needed anywhere.
+
+\begin{lstlisting}[language=bash,caption={Repository layout}]
+vslam-course/
+  course/          LaTeX sources of these notes
+  code/vslam/      the Python package (lie.py, camera.py, ...)
+  code/tests/      pytest suite, including Jacobian checks
+  code/examples/   one script per practical
+\end{lstlisting}
+
+\section*{Data}
+
+Synthetic data comes first: each practical generates its own scene, so
+ground truth is exact and bugs are easy to localise. Real data enters in
+Part~II with standard benchmarks: TUM RGB-D (indoor, RGB-D), EuRoC MAV
+(stereo + IMU, ideal for Part~IV) and KITTI (outdoor stereo driving). For
+the garden, the Rosario dataset (stereo, IMU, wheel odometry and RTK-GNSS
+recorded by a wheeled robot in a soybean field) is the closest public
+analogue to a lawn, and you will eventually record your own sequences on
+the mower.

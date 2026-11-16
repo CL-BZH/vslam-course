@@ -1,0 +1,115 @@
+% preamble.tex -- shared style for the vSLAM course
+% Colour scheme: blue = definitions, red = theorems, amber = propositions
+% and lemmas, green = "In words" intuition, grey = practice / code.
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,mathtools,bm}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric,fit,
+  decorations.pathreplacing,3d}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage[section]{placeins}
+\usepackage{listings}
+\usepackage[most]{tcolorbox}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,
+  citecolor=green!40!black,urlcolor=blue!60!black]{hyperref}
+\usepackage[nameinlink,capitalise]{cleveref}
+
+% ---------------------------------------------------------------- colours
+\definecolor{defblue}{RGB}{30,90,170}
+\definecolor{thmred}{RGB}{175,35,35}
+\definecolor{propamber}{RGB}{200,130,0}
+\definecolor{wordsgreen}{RGB}{40,130,70}
+\definecolor{codegrey}{RGB}{90,90,90}
+\definecolor{codebg}{RGB}{248,248,246}
+\definecolor{lawngreen}{RGB}{70,140,40}
+
+% ----------------------------------------------------- theorem-like boxes
+\tcbset{
+  basestyle/.style={enhanced,breakable,sharp corners=south,
+    fonttitle=\bfseries,boxrule=0.6pt,left=6pt,right=6pt,
+    top=4pt,bottom=4pt,separator sign={.}},
+}
+\newtcbtheorem[number within=chapter]{definition}{Definition}{
+  basestyle,label type=definition,
+  colback=defblue!5,colframe=defblue,coltitle=white}{def}
+\newtcbtheorem[use counter from=definition]{theorem}{Theorem}{
+  basestyle,label type=theorem,
+  colback=thmred!5,colframe=thmred,coltitle=white}{thm}
+\newtcbtheorem[use counter from=definition]{proposition}{Proposition}{
+  basestyle,label type=proposition,
+  colback=propamber!7,colframe=propamber,coltitle=white}{prop}
+\newtcbtheorem[use counter from=definition]{lemma}{Lemma}{
+  basestyle,label type=lemma,
+  colback=propamber!7,colframe=propamber,coltitle=white}{lem}
+\newtcbtheorem[use counter from=definition]{example}{Example}{
+  basestyle,label type=example,
+  colback=white,colframe=black!40,coltitle=white}{ex}
+
+\newtcolorbox{inwords}{enhanced,breakable,colback=wordsgreen!6,
+  colframe=wordsgreen,boxrule=0.6pt,sharp corners=south,
+  title={\textbf{In words}},fonttitle=\bfseries,coltitle=white}
+\newtcolorbox{practice}[1][]{enhanced,breakable,colback=codebg,
+  colframe=codegrey,boxrule=0.6pt,sharp corners=south,
+  title={\textbf{Practice}\ifx\relax#1\relax\else\ --- #1\fi},
+  fonttitle=\bfseries,coltitle=white}
+\newtcolorbox{mower}{enhanced,breakable,colback=lawngreen!6,
+  colframe=lawngreen!70!black,boxrule=0.6pt,sharp corners=south,
+  title={\textbf{On the lawn}},fonttitle=\bfseries,coltitle=white}
+
+\crefname{definition}{Definition}{Definitions}
+\crefname{theorem}{Theorem}{Theorems}
+\crefname{proposition}{Proposition}{Propositions}
+\crefname{lemma}{Lemma}{Lemmas}
+\crefname{example}{Example}{Examples}
+
+\newenvironment{proof}[1][Proof]{\par\noindent\textit{#1.}\ }
+  {\hfill$\square$\par\medskip}
+
+% --------------------------------------------------------------- listings
+\lstdefinestyle{py}{language=Python,basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},frame=single,rulecolor=\color{codegrey},
+  keywordstyle=\color{defblue}\bfseries,commentstyle=\color{wordsgreen},
+  stringstyle=\color{thmred},showstringspaces=false,breaklines=true,
+  columns=fullflexible,keepspaces=true}
+\lstset{style=py}
+
+% ---------------------------------------------------------------- macros
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\SO}[1]{\mathrm{SO}(#1)}
+\newcommand{\SE}[1]{\mathrm{SE}(#1)}
+\newcommand{\so}[1]{\mathfrak{so}(#1)}
+\newcommand{\se}[1]{\mathfrak{se}(#1)}
+\newcommand{\GL}[1]{\mathrm{GL}(#1)}
+\newcommand{\hatop}[1]{#1^{\wedge}}
+\newcommand{\veeop}[1]{#1^{\vee}}
+\newcommand{\Exp}{\operatorname{Exp}}
+\newcommand{\Log}{\operatorname{Log}}
+\newcommand{\Ad}{\operatorname{Ad}}
+\newcommand{\ad}{\operatorname{ad}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\T}{^{\mathsf{T}}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Normal}{\mathcal{N}}
+\newcommand{\vect}[1]{\bm{#1}}
+\newcommand{\x}{\vect{x}}
+\newcommand{\z}{\vect{z}}
+\newcommand{\uu}{\vect{u}}
+\newcommand{\m}{\vect{m}}
+\newcommand{\p}{\vect{p}}
+\newcommand{\btheta}{\vect{\theta}}
+\newcommand{\bphi}{\vect{\phi}}
+\newcommand{\brho}{\vect{\rho}}
+\newcommand{\bxi}{\vect{\xi}}
+\newcommand{\bomega}{\vect{\omega}}
+\newcommand{\norm}[1]{\left\lVert #1\right\rVert}
+\newcommand{\code}[1]{\texttt{#1}}
