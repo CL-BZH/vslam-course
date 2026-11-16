@@ -150,6 +150,33 @@ class PinholeCamera:
         J_p = J_q @ T_wc[:3, :3].T
         return u, J_xi, J_p
 
+    # ---------------------------------------------------------- intrinsics
+    @property
+    def params(self) -> np.ndarray:
+        """(fx, fy, cx, cy, k1, k2, p1, p2, k3)."""
+        return np.concatenate([[self.fx, self.fy, self.cx, self.cy],
+                               self.dist])
+
+    @classmethod
+    def from_params(cls, p: np.ndarray, width: int = 640,
+                    height: int = 480) -> "PinholeCamera":
+        return cls(p[0], p[1], p[2], p[3], np.array(p[4:9]), width, height)
+
+    def intrinsics_jacobian(self, q: np.ndarray) -> np.ndarray:
+        """2x9 Jacobian of the pixel of q (camera frame) with respect to
+        (fx, fy, cx, cy, k1, k2, p1, p2, k3)."""
+        x, y = q[0] / q[2], q[1] / q[2]
+        xd, yd = self.distort(np.array([x, y]))
+        r2 = x * x + y * y
+        r4, r6 = r2 * r2, r2 * r2 * r2
+        Jd = np.array([[x * r2, x * r4, 2 * x * y, r2 + 2 * x * x, x * r6],
+                       [y * r2, y * r4, r2 + 2 * y * y, 2 * x * y, y * r6]])
+        J = np.zeros((2, 9))
+        J[0, 0], J[0, 2] = xd, 1.0
+        J[1, 1], J[1, 3] = yd, 1.0
+        J[:, 4:] = np.diag([self.fx, self.fy]) @ Jd
+        return J
+
     def unproject(self, u: np.ndarray) -> np.ndarray:
         """Bearing (x, y, 1) of the ray through pixel u."""
         xd = np.array([(u[0] - self.cx) / self.fx,

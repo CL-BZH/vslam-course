@@ -9,7 +9,7 @@ Python practical.
 
 | Part | Chapters | Status |
 |---|---|---|
-| I. Foundations | 1 The SLAM problem · 2 Rigid motion and Lie groups · 3 Cameras · 4 Nonlinear least squares on manifolds | 1–3 drafted |
+| I. Foundations | 1 The SLAM problem · 2 Rigid motion and Lie groups · 3 Cameras · 4 Nonlinear least squares on manifolds | drafted |
 | II. Visual front-end | 5 Features and correspondence · 6 Two-view geometry · 7 Visual odometry | planned |
 | III. Back-end | 8 Bundle adjustment · 9 Factor and pose graphs · 10 Loop closure · 11 Maps for a mower | planned |
 | IV. Fusion for the garden | 12 The IMU · 13 Visual-inertial odometry · 14 Wheels and RTK-GNSS · 15 Capstone | planned |
@@ -53,6 +53,9 @@ cd notebooks && jupyter lab
 - `examples/ch03_cameras.py` — lens distortion field, accuracy of Zhang's
   linear calibration versus noise and number of views (with and without
   unmodelled distortion), stereo depth uncertainty.
+- `examples/ch04_least_squares.py` — Gauss-Newton's linear rate and its
+  failure on a large-residual problem, finishing the Chapter 3
+  calibration with GN and LM, robust kernels against outliers.
 
 ## Notebooks
 
@@ -70,3 +73,6 @@ committed with their outputs, so they can be read directly on GitHub.
   undistortion, reprojection Jacobians (near vs far features), Zhang
   calibration of a simulated wide-angle camera with its residuals, stereo
   depth, and the pure-rotation homography (Exercise 3.2).
+- `notebooks/ch04_least_squares.ipynb`: the Gauss-Newton rate, LM's
+  damping and gain ratio, the finished calibration, Laplace covariance
+  against Monte Carlo, IRLS weights on outliers, optimising on SO(3).

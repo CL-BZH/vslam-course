@@ -149,3 +149,76 @@ def synthetic_views(cam: PinholeCamera, n_views: int,
         if np.all(cam.in_image(u, margin=5.0)):
             views.append((T_cb, u + rng.normal(scale=noise, size=u.shape)))
     return board, views
+
+
+# --------------------------------------------------------------------------
+# Nonlinear refinement (Chapter 4)
+# --------------------------------------------------------------------------
+class CalibrationProblem:
+    """Reprojection error of all board corners in all views.
+
+    State: (params, poses) with params = (fx, fy, cx, cy, k1, k2, p1, p2,
+    k3) and poses the list of camera poses T_bc in the board frame (so
+    that `PinholeCamera.project_world` applies directly, the board frame
+    playing the role of the world). Tangent vector: 9 intrinsic
+    increments followed by one 6-vector per view (right perturbation).
+    Residuals are whitened by the pixel noise `sigma`.
+    """
+
+    block_size = 2
+
+    def __init__(self, board: np.ndarray, pixels: list[np.ndarray],
+                 sigma: float = 1.0, width: int = 640, height: int = 480,
+                 fix_k3: bool = False) -> None:
+        self.board, self.pixels, self.sigma = board, pixels, sigma
+        self.width, self.height = width, height
+        self.fix_k3 = fix_k3
+
+    def linearize(self, x):
+        params, poses = x
+        cam = PinholeCamera.from_params(params, self.width, self.height)
+        n_v, n_p = len(poses), len(self.board)
+        r = np.zeros(2 * n_v * n_p)
+        J = np.zeros((2 * n_v * n_p, 9 + 6 * n_v))
+        row = 0
+        for i, (T_bc, z) in enumerate(zip(poses, self.pixels)):
+            T_cb = lie.se3_inv(T_bc)
+            for p, z_j in zip(self.board, z):
+                u, J_xi, _ = cam.project_world(T_bc, p)
+                q = lie.se3_act(T_cb, p)
+                r[row:row + 2] = (z_j - u) / self.sigma
+                J[row:row + 2, :9] = -cam.intrinsics_jacobian(q) / self.sigma
+                J[row:row + 2, 9 + 6 * i:15 + 6 * i] = -J_xi / self.sigma
+                row += 2
+        if self.fix_k3:
+            J[:, 8] = 0.0
+        return r, J
+
+    def retract(self, x, delta):
+        params, poses = x
+        new_poses = [T @ lie.se3_exp(delta[9 + 6 * i:15 + 6 * i])
+                     for i, T in enumerate(poses)]
+        return params + delta[:9], new_poses
+
+
+def calibrate(board: np.ndarray, pixels: list[np.ndarray],
+              width: int = 640, height: int = 480, sigma: float = 1.0,
+              method: str = "lm", kernel=None, fix_k3: bool = True):
+    """Full calibration: Zhang's linear step, then nonlinear refinement of
+    intrinsics, distortion and board poses by Gauss-Newton or LM.
+
+    Returns (camera, poses T_bc, optim.Result).
+    """
+    from . import optim  # local import: optim does not depend on calib
+
+    Hs = [homography_dlt(board[:, :2], z) for z in pixels]
+    K = zhang_intrinsics(Hs)
+    poses = [lie.se3_inv(zhang_extrinsics(K, H)) for H in Hs]
+    params = np.array([K[0, 0], K[1, 1], K[0, 2], K[1, 2],
+                       0.0, 0.0, 0.0, 0.0, 0.0])
+    pb = CalibrationProblem(board, pixels, sigma, width, height, fix_k3)
+    solver = (optim.levenberg_marquardt if method == "lm"
+              else optim.gauss_newton)
+    res = solver(pb, (params, poses), kernel=kernel)
+    params, poses = res.x
+    return PinholeCamera.from_params(params, width, height), poses, res

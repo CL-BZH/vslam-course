@@ -112,3 +112,11 @@ def test_nearest_rotation():
         np.linalg.det(Rn), 1.0)
     # Rn is the closest rotation to M, so in particular closer than R
     assert np.linalg.norm(Rn - M) <= np.linalg.norm(R - M) + 1e-15
+
+
+def test_intrinsics_jacobian():
+    c = cam()
+    q = np.array([0.3, -0.25, 1.4])
+    f = lambda p: PinholeCamera.from_params(p).project(q)
+    assert np.allclose(c.intrinsics_jacobian(q), num_jac(f, c.params),
+                       atol=1e-6)
