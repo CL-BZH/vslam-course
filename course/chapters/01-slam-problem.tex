@@ -9,8 +9,8 @@ a map you need to know where you were when you saw each part of it. SLAM
 solves both jointly. This chapter writes that joint problem down precisely,
 shows that under Gaussian noise it is a nonlinear least-squares problem
 whose structure is a sparse graph, and explains why modern visual SLAM
-\emph{smooths} that graph instead of \emph{filtering} it, as your Kalman
-and particle filters did.
+\emph{smooths} that graph instead of \emph{filtering} it, as Kalman and
+particle filters do.
 
 \section{Variables, models and assumptions}
 
@@ -238,8 +238,8 @@ handful of poses. So $H$ is overwhelmingly zero, with a very characteristic
 
 \section{Filtering versus smoothing}
 
-Your Kalman filters kept only the current state: at each step they
-\emph{marginalised out} the previous one. EKF-SLAM does the same with the
+A Kalman filter keeps only the current state: at each step it
+\emph{marginalises out} the previous one. EKF-SLAM does the same with the
 state $(\x_k,M)$. The following lemma, which is also the heart of
 sliding-window back-ends (Chapter~9), shows what marginalisation does to
 the graph.
