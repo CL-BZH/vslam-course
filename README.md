@@ -11,7 +11,7 @@ Python practical.
 |---|---|---|
 | I. Foundations | 1 The SLAM problem · 2 Rigid motion and Lie groups · 3 Cameras · 4 Nonlinear least squares on manifolds | drafted |
 | II. Visual front-end | 5 Features and correspondence · 6 Two-view geometry · 7 Visual odometry | drafted |
-| III. Back-end | 8 Bundle adjustment · 9 Factor and pose graphs · 10 Loop closure · 11 Maps for a mower | planned |
+| III. Back-end | 8 Bundle adjustment · 9 Factor and pose graphs · 10 Loop closure · 11 Maps for a mower | 8 drafted |
 | IV. Fusion for the garden | 12 The IMU · 13 Visual-inertial odometry · 14 Wheels and RTK-GNSS · 15 Capstone | planned |
 
 ## Layout
@@ -64,6 +64,9 @@ cd notebooks && jupyter lab
   triangulation accuracy and the forward-motion blind spot.
 - `examples/ch07_vo.py` — PnP with outliers and on a lawn, stereo VO on a
   simulated garden mown in rows (keyframe vs frame-to-frame), drift.
+- `examples/ch08_ba.py` — structure of the normal equations and cost of
+  the Schur complement, covariances against Monte Carlo, the VO with a
+  sliding-window bundle adjustment.
 
 ## Notebooks
 
@@ -94,3 +97,6 @@ committed with their outputs, so they can be read directly on GitHub.
 - `notebooks/ch07_vo.ipynb`: linear PnP and its planar degeneracy, the
   four P3P solutions, robust refinement, the simulated garden, running
   the VO, the drift law against Monte Carlo, ATE versus RPE.
+- `notebooks/ch08_ba.ipynb`: the arrowhead, Schur step against the dense
+  step, the gauge, solving and the chi-square check, covariance against
+  Monte Carlo, local BA in the VO.

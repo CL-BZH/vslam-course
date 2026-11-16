@@ -130,3 +130,20 @@ def test_stereo_vo_on_a_short_run(sigma):
     assert V.stats.failures == 0
     # exact without noise; with noise, below 5 % of the 7.5 m driven
     assert err < (1e-5 if sigma == 0 else 0.375)
+
+
+def test_local_ba_reduces_drift():
+    rng = np.random.default_rng(4)
+    world = sim.garden(rng)
+    S = sim.GardenSim()
+    frames = S.run(world, sim.boustrophedon()[:300], sim.camera_mount(), rng)
+    gt = np.array([f.T_wc[:3, 3] for f in frames])
+    errs = {}
+    for name, V in [("vo", vo.StereoVO(S.stereo, 0.5,
+                                       rng=np.random.default_rng(0))),
+                    ("ba", vo.StereoVOBA(S.stereo, 0.5,
+                                         rng=np.random.default_rng(0)))]:
+        est = V.run(frames, frames[0].T_wc)
+        e = np.array([T[:3, 3] for T in est])
+        errs[name] = np.sqrt(np.mean(np.sum((e - gt) ** 2, axis=1)))
+    assert errs["ba"] < 0.5 * errs["vo"]
