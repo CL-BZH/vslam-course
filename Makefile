@@ -9,6 +9,7 @@ test:
 figures:
 	cd code && PYTHONPATH=. python3 examples/ch01_linear_slam.py
 	cd code && PYTHONPATH=. python3 examples/ch02_banana.py
+	cd code && PYTHONPATH=. python3 examples/ch03_cameras.py
 
 notebooks:
 	cd code/notebooks && for nb in *.ipynb; do \

@@ -9,7 +9,7 @@ Python practical.
 
 | Part | Chapters | Status |
 |---|---|---|
-| I. Foundations | 1 The SLAM problem · 2 Rigid motion and Lie groups · 3 Cameras · 4 Nonlinear least squares on manifolds | 1–2 drafted |
+| I. Foundations | 1 The SLAM problem · 2 Rigid motion and Lie groups · 3 Cameras · 4 Nonlinear least squares on manifolds | 1–3 drafted |
 | II. Visual front-end | 5 Features and correspondence · 6 Two-view geometry · 7 Visual odometry | planned |
 | III. Back-end | 8 Bundle adjustment · 9 Factor and pose graphs · 10 Loop closure · 11 Maps for a mower | planned |
 | IV. Fusion for the garden | 12 The IMU · 13 Visual-inertial odometry · 14 Wheels and RTK-GNSS · 15 Capstone | planned |
@@ -50,6 +50,9 @@ cd notebooks && jupyter lab
   (`--no-prior`).
 - `examples/ch02_banana.py` — wheel-odometry uncertainty on SE(3):
   Monte Carlo versus a Gaussian in the Lie algebra (the "banana").
+- `examples/ch03_cameras.py` — lens distortion field, accuracy of Zhang's
+  linear calibration versus noise and number of views (with and without
+  unmodelled distortion), stereo depth uncertainty.
 
 ## Notebooks
 
@@ -63,3 +66,7 @@ committed with their outputs, so they can be read directly on GitHub.
 - `notebooks/ch02_lie_groups.ipynb`: hat identities, Rodrigues and Log
   at the edge angles, the SE(3) screw motion, the adjoint, Jacobians
   against finite differences (including Exercise 2.3), the banana.
+- `notebooks/ch03_cameras.ipynb`: projecting a garden scene, Newton
+  undistortion, reprojection Jacobians (near vs far features), Zhang
+  calibration of a simulated wide-angle camera with its residuals, stereo
+  depth, and the pure-rotation homography (Exercise 3.2).
