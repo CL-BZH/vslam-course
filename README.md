@@ -11,7 +11,7 @@ Python practical.
 |---|---|---|
 | I. Foundations | 1 The SLAM problem · 2 Rigid motion and Lie groups · 3 Cameras · 4 Nonlinear least squares on manifolds | drafted |
 | II. Visual front-end | 5 Features and correspondence · 6 Two-view geometry · 7 Visual odometry | drafted |
-| III. Back-end | 8 Bundle adjustment · 9 Factor and pose graphs · 10 Loop closure · 11 Maps for a mower | 8–10 drafted |
+| III. Back-end | 8 Bundle adjustment · 9 Factor and pose graphs · 10 Loop closure · 11 Maps for a mower | drafted |
 | IV. Fusion for the garden | 12 The IMU · 13 Visual-inertial odometry · 14 Wheels and RTK-GNSS · 15 Capstone | planned |
 
 ## Layout
@@ -73,6 +73,11 @@ cd notebooks && jupyter lab
 - `examples/ch10_loops.py` — bag-of-binary-words place recognition on
   simulated descriptors (with an aliased fence), precision and recall,
   geometric verification, and the pose graph with the loops found.
+- `examples/ch11_maps.py` — dense stereo on a ray-cast garden, ground
+  planes, log-odds occupancy and lawn layers fused with true, VO and
+  pose-graph poses, and the export to the
+  [Lawnmower](https://github.com/CL-BZH/Lawnmower) coverage planners
+  (used if installed: `pip install -e path/to/Lawnmower`).
 
 ## Notebooks
 
@@ -112,3 +117,6 @@ committed with their outputs, so they can be read directly on GitHub.
 - `notebooks/ch10_loops.ipynb`: descriptor aliasing, k-majority, the
   vocabulary and the scores, verification of one loop, all loops and the
   pose graph, under strong aliasing too.
+- `notebooks/ch11_maps.ipynb`: the dense garden, stereo point errors
+  against Monte Carlo, the ground plane, the vote bound, maps with three
+  sets of poses, and the planners on the exported grid.
