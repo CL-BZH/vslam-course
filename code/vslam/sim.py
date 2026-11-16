@@ -26,6 +26,8 @@ from .camera import PinholeCamera, StereoCamera
 class Landmarks:
     points: np.ndarray        # (N, 3) world coordinates
     grass: np.ndarray         # (N,) bool: on the lawn (moves in the wind)
+    kind: np.ndarray | None = None   # (N,) str: fence, house, shed, tree,
+                                     # grass
 
 
 def garden(rng: np.random.Generator | None = None,
@@ -34,26 +36,29 @@ def garden(rng: np.random.Generator | None = None,
     points on the grass itself."""
     rng = rng or np.random.default_rng(0)
     pts = []
+    kinds = []
 
-    def wall(p0, p1, h0, h1, density):
+    def wall(p0, p1, h0, h1, density, kind):
         p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
         length = np.linalg.norm(p1 - p0)
         n = int(density * length * (h1 - h0))
         s = rng.uniform(0, 1, n)
         xy = p0 + s[:, None] * (p1 - p0)
         pts.append(np.column_stack([xy, rng.uniform(h0, h1, n)]))
+        kinds.append(np.full(n, kind))
 
     def trunk(c, r, h, density):
         n = int(density * 2 * np.pi * r * h)
         a = rng.uniform(0, 2 * np.pi, n)
         pts.append(np.column_stack([c[0] + r * np.cos(a), c[1] + r * np.sin(a),
                                     rng.uniform(0, h, n)]))
+        kinds.append(np.full(n, "tree"))
 
     for p0, p1 in [((-1, -1), (13, -1)), ((13, -1), (13, 9)),
                    ((13, 9), (-1, 9)), ((-1, 9), (-1, -1))]:
-        wall(p0, p1, 0.0, 1.2, 12.0)                      # fence
-    wall((-2, 12), (10, 12), 0.0, 4.0, 4.0)               # house wall
-    wall((14, 2), (14, 5), 0.0, 2.2, 8.0)                 # shed
+        wall(p0, p1, 0.0, 1.2, 12.0, "fence")
+    wall((-2, 12), (10, 12), 0.0, 4.0, 4.0, "house")
+    wall((14, 2), (14, 5), 0.0, 2.2, 8.0, "shed")
     for c in [(3, -3), (8, -2.5), (15, 7), (-3, 4), (6, 11)]:
         trunk(c, 0.25, 3.0, 25.0)                         # trees
     structure = np.vstack(pts)
@@ -63,7 +68,8 @@ def garden(rng: np.random.Generator | None = None,
     points = np.vstack([structure, grass])
     flag = np.concatenate([np.zeros(len(structure), bool),
                            np.ones(n_g, bool)])
-    return Landmarks(points, flag)
+    kind = np.concatenate(kinds + [np.full(n_g, "grass")])
+    return Landmarks(points, flag, kind)
 
 
 def boustrophedon(rows: list[float] | None = None, x0: float = 1.0,
@@ -166,3 +172,44 @@ class GardenSim:
                                           rnd[:, 0] - disp])
             frames.append(Frame(T_wc, track[idx].copy(), z, idx, out))
         return frames
+
+
+# --------------------------------------------------------------------------
+# Appearance (Chapter 10)
+# --------------------------------------------------------------------------
+def landmark_descriptors(world: Landmarks, rng: np.random.Generator,
+                         n_fence: int = 40, n_grass: int = 15,
+                         personal: float = 0.04, n_bits: int = 256
+                         ) -> np.ndarray:
+    """A 256-bit base descriptor per landmark, packed (N, n_bits / 8).
+
+    Unique random descriptors for the house, the shed and the trees. Fence
+    and grass landmarks look alike: each copies one of a few prototypes
+    (`n_fence` pickets, `n_grass` grass patterns) with only a fraction
+    `personal` of its bits changed -- the perceptual aliasing of
+    repetitive structure.
+    """
+    n = len(world.points)
+    bits = rng.random((n, n_bits)) < 0.5
+    for kind, n_proto in [("fence", n_fence), ("grass", n_grass)]:
+        idx = np.nonzero(world.kind == kind)[0]
+        protos = rng.random((n_proto, n_bits)) < 0.5
+        own = protos[rng.integers(n_proto, size=len(idx))]
+        flip = rng.random((len(idx), n_bits)) < personal
+        bits[idx] = own ^ flip
+    return np.packbits(bits, axis=1)
+
+
+def observe_descriptors(base: np.ndarray, frame: Frame, world: Landmarks,
+                        rng: np.random.Generator, flip: float = 0.08,
+                        flip_grass: float = 0.15) -> np.ndarray:
+    """Descriptors measured in one frame: the base descriptor of each
+    observed landmark with a fraction of bits flipped (viewpoint, light,
+    wind); wrong measurements get random descriptors."""
+    d = np.unpackbits(base[frame.landmark], axis=1).astype(bool)
+    p = np.where(world.grass[frame.landmark], flip_grass, flip)[:, None]
+    d ^= rng.random(d.shape) < p
+    if frame.outlier.any():
+        d[frame.outlier] = rng.random((frame.outlier.sum(), d.shape[1])) \
+            < 0.5
+    return np.packbits(d, axis=1)

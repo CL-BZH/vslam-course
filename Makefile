@@ -16,6 +16,7 @@ figures:
 	cd code && PYTHONPATH=. python3 examples/ch07_vo.py
 	cd code && PYTHONPATH=. python3 examples/ch08_ba.py
 	cd code && PYTHONPATH=. python3 examples/ch09_posegraph.py
+	cd code && PYTHONPATH=. python3 examples/ch10_loops.py
 
 notebooks:
 	cd code/notebooks && for nb in *.ipynb; do \
