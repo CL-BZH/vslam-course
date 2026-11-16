@@ -1,9 +1,8 @@
 # Visual SLAM for an Autonomous Lawnmower
 
 A course on visual SLAM, from geometry and optimisation to
-visual-inertial fusion. The running example is a ride-on mower (a
-Progreen PG98 HK) converted into an autonomous robot, but the material is
-general. Each chapter has full derivations in LaTeX and a from-scratch
+visual-inertial fusion. The running example is a ride-on mower converted
+into an autonomous robot, but the material is general. Each chapter has full derivations in LaTeX and a from-scratch
 Python practical.
 
 ## Contents
