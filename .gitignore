@@ -9,3 +9,4 @@ course/*.fls
 course/*.fdb_latexmk
 course/*.synctex.gz
 course/chapters/*.aux
+.ipynb_checkpoints/

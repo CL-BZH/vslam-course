@@ -21,6 +21,7 @@ course/          LaTeX sources (main.tex, preamble.tex, chapters/, figures/)
 code/vslam/      the Python package, grown chapter by chapter
 code/tests/      pytest suite (closed forms and Jacobian checks)
 code/examples/   one script per practical; they also regenerate the figures
+code/notebooks/  one Jupyter notebook per chapter (theory checks + practicals)
 ```
 
 ## Building
@@ -29,6 +30,7 @@ code/examples/   one script per practical; they also regenerate the figures
 make pdf        # course/main.pdf (needs latexmk + a TeX Live install)
 make test       # runs the pytest suite
 make figures    # reruns the practicals and rewrites course/figures/
+make notebooks  # re-executes the notebooks in place
 ```
 
 Python setup (no GPU needed):
@@ -36,6 +38,8 @@ Python setup (no GPU needed):
 ```bash
 cd code
 pip install -e ".[dev]"
+pip install jupyter      # for the notebooks
+cd notebooks && jupyter lab
 ```
 
 ## Practicals so far
@@ -46,3 +50,16 @@ pip install -e ".[dev]"
   (`--no-prior`).
 - `examples/ch02_banana.py` — wheel-odometry uncertainty on SE(3):
   Monte Carlo versus a Gaussian in the Lie algebra (the "banana").
+
+## Notebooks
+
+The notebooks walk through each chapter interactively: every statement
+that can be checked numerically (identities, closed forms, Jacobians) is
+checked, and the practicals are rebuilt step by step with plots. They are
+committed with their outputs, so they can be read directly on GitHub.
+
+- `notebooks/ch01_linear_slam.ipynb`: the 1D SLAM problem, sparsity,
+  fill-in (including Exercise 1.3), filtering vs smoothing, the gauge.
+- `notebooks/ch02_lie_groups.ipynb`: hat identities, Rodrigues and Log
+  at the edge angles, the SE(3) screw motion, the adjoint, Jacobians
+  against finite differences (including Exercise 2.3), the banana.
