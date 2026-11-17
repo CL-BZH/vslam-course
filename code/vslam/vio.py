@@ -430,6 +430,30 @@ class SlidingWindowVIO:
             if i not in seen:
                 del self.points[i]
 
+    def covariance(self, k: int = -1) -> np.ndarray:
+        """Laplace covariance (15 x 15, local coordinates) of keyframe k:
+        the block of the inverse of the reduced Hessian, prior included
+        (the prior fixes the gauge). Chapter 15 tests whether it is
+        consistent with the actual errors."""
+        Hs, W, V, _, _, pid = self.normal_equations()
+        P = len(pid)
+        if P:
+            Vinv = np.linalg.inv(V + 1e-9 * np.eye(3)[None])
+            WV = np.einsum("spi,pij->spj", W.reshape(-1, P, 3), Vinv)
+            Hs = Hs - WV.reshape(len(Hs), -1) @ W.T
+        k = k % len(self.kfs)
+        C = np.linalg.inv(0.5 * (Hs + Hs.T))
+        return C[NX * k:NX * k + NX, NX * k:NX * k + NX]
+
+    def add_unary(self, f, k: int = -1, iters: int | None = None) -> None:
+        """Add a factor on keyframe k after the fact, and re-optimise."""
+        self.unary[k % len(self.kfs)].append(f)
+        saved = self.iters
+        if iters is not None:
+            self.iters = iters
+        self.optimise()
+        self.iters = saved
+
     def transform(self, Q: np.ndarray, t: np.ndarray) -> None:
         """Move the whole window by x -> Q x + t, Q a rotation about the
         vertical: a symmetry of the cost (Theorem 13.3), used to align the
