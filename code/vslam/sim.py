@@ -213,3 +213,159 @@ def observe_descriptors(base: np.ndarray, frame: Frame, world: Landmarks,
         d[frame.outlier] = rng.random((frame.outlier.sum(), d.shape[1])) \
             < 0.5
     return np.packbits(d, axis=1)
+
+
+# --------------------------------------------------------------------------
+# Continuous-time motion (Chapter 13)
+# --------------------------------------------------------------------------
+def _euler_zyx_rates(psi, th, ph, dpsi, dth, dph):
+    """Rotation R = Rz(psi) Ry(th) Rx(ph) and its body angular rate."""
+    cz, sz = np.cos(psi), np.sin(psi)
+    cy, sy = np.cos(th), np.sin(th)
+    cx, sx = np.cos(ph), np.sin(ph)
+    Rz = np.array([[cz, -sz, 0], [sz, cz, 0], [0, 0, 1]])
+    Ry = np.array([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]])
+    Rx = np.array([[1, 0, 0], [0, cx, -sx], [0, sx, cx]])
+    w = np.array([dph - dpsi * sy,
+                  dth * cx + dpsi * cy * sx,
+                  -dth * sx + dpsi * cy * cx])
+    return Rz @ Ry @ Rx, w
+
+
+class GardenMotion:
+    """The mowing pattern of the garden as a smooth body trajectory with
+    closed-form angular rate and acceleration (for an exact IMU).
+
+    The mower stands still for `still` seconds, accelerates smoothly to
+    `speed`, drives the rows y = 1, 2.5, ..., 7 between x = 1 and x = 11,
+    and turns between rows with a curvature that rises and falls as a
+    raised cosine (no jump in lateral acceleration). The ground is bumpy
+    (height `bump`) and the body pitches and rolls by about `sway_deg`.
+    World frame z up; body frame x forward, y left, z up.
+    """
+
+    def __init__(self, rows=(1.0, 2.5, 4.0, 5.5, 7.0), x0: float = 1.0,
+                 x1: float = 11.0, speed: float = 1.0, still: float = 2.0,
+                 ramp: float = 1.0, bump: float = 0.01,
+                 bump_len: float = 1.3, sway_deg: float = 1.0) -> None:
+        self.speed, self.still, self.ramp = speed, still, ramp
+        self.bump, self.kz = bump, 2 * np.pi / bump_len
+        s = np.radians(sway_deg)
+        self.th0, self.kth = s, 2 * np.pi / 1.7
+        self.ph0, self.kph = s, 2 * np.pi / 2.3
+        # the turn profile: psi(u) = pi u - sin(2 pi u) / 2 on u in [0, 1];
+        # lateral offset per unit length c = int_0^1 sin(psi(u)) du
+        u = np.linspace(0, 1, 20001)
+        psi = np.pi * u - 0.5 * np.sin(2 * np.pi * u)
+        c = float(np.sum(0.5 * (np.sin(psi[1:]) + np.sin(psi[:-1])))
+                  * (u[1] - u[0]))
+        self.turn_len = (rows[1] - rows[0]) / c
+        # tables of int cos, int sin over the unit turn (Simpson-accurate
+        # on this grid), interpolated with the exact derivatives
+        du = u[1] - u[0]
+        self._u = u
+        self._ic = np.r_[0, np.cumsum(0.5 * (np.cos(psi[1:])
+                                             + np.cos(psi[:-1])))] * du
+        self._is = np.r_[0, np.cumsum(0.5 * (np.sin(psi[1:])
+                                             + np.sin(psi[:-1])))] * du
+        # segments: (kind, start arclength, length, start xy, heading0,
+        # turn direction)
+        self.segs = []
+        s0 = 0.0
+        for i, y in enumerate(rows):
+            fwd = i % 2 == 0
+            start = np.array([x0 if fwd else x1, y])
+            head = 0.0 if fwd else np.pi
+            self.segs.append(("row", s0, x1 - x0, start, head, 0))
+            s0 += x1 - x0
+            if i + 1 < len(rows):
+                end = np.array([x1 if fwd else x0, y])
+                self.segs.append(("turn", s0, self.turn_len, end, head,
+                                  1 if fwd else -1))
+                s0 += self.turn_len
+        self.length = s0
+        self.duration = (still + ramp / 2 + (s0) / speed)
+
+    # ------------------------------------------------------------ s(t)
+    def arclength(self, t: float) -> tuple[float, float, float]:
+        """Distance s, speed and tangential acceleration at time t: still,
+        then a smooth ramp (speed = V sin^2), then constant speed."""
+        V, T0, Tr = self.speed, self.still, self.ramp
+        if t <= T0:
+            return 0.0, 0.0, 0.0
+        tau = t - T0
+        if tau < Tr:
+            x = np.pi * tau / (2 * Tr)
+            v = V * np.sin(x) ** 2
+            a = V * np.sin(2 * x) * np.pi / (2 * Tr)
+            s = V * (tau / 2 - Tr / (2 * np.pi) * np.sin(np.pi * tau / Tr))
+            return s, v, a
+        return V * Tr / 2 + V * (tau - Tr), V, 0.0
+
+    # ------------------------------------------------------------ path
+    def path(self, s: float):
+        """Horizontal position, heading and curvature at arclength s."""
+        s = min(max(s, 0.0), self.length)
+        for kind, a, L, start, head, d in self.segs:
+            if s <= a + L or (kind, a) == self.segs[-1][:2]:
+                break
+        ds = s - a
+        if kind == "row":
+            t = np.array([np.cos(head), np.sin(head)])
+            return start + ds * t, head, 0.0
+        u = ds / L
+        psi_u = np.pi * u - 0.5 * np.sin(2 * np.pi * u)
+        kap = d * (np.pi / L) * (1 - np.cos(2 * np.pi * u))
+        # table value at the grid point below u, plus a trapezoid step to u
+        # (the integrands are known exactly): error ~1e-9 m
+        k = min(int(u / self._u[1]), len(self._u) - 2)
+        uk = self._u[k]
+        psik = np.pi * uk - 0.5 * np.sin(2 * np.pi * uk)
+        ic = self._ic[k] + 0.5 * (np.cos(psik) + np.cos(psi_u)) * (u - uk)
+        is_ = self._is[k] + 0.5 * (np.sin(psik) + np.sin(psi_u)) * (u - uk)
+        # local frame of the turn: forward = initial heading, left = d
+        f = np.array([np.cos(head), np.sin(head)])
+        left = d * np.array([-np.sin(head), np.cos(head)])
+        xy = start + L * (ic * f + is_ * left)
+        return xy, head + d * psi_u, kap
+
+    # ------------------------------------------------------------ state
+    def state(self, t: float):
+        """R, p, v, a (world) and w (body) at time t."""
+        s, sp, ac = self.arclength(t)
+        xy, psi, kap = self.path(s)
+        tang = np.array([np.cos(psi), np.sin(psi)])
+        nrm = np.array([-np.sin(psi), np.cos(psi)])
+        z = self.bump * np.sin(self.kz * s)
+        dz = self.bump * self.kz * np.cos(self.kz * s)
+        ddz = -self.bump * self.kz ** 2 * np.sin(self.kz * s)
+        p = np.r_[xy, z]
+        v = np.r_[sp * tang, dz * sp]
+        a = np.r_[ac * tang + sp ** 2 * kap * nrm,
+                  ddz * sp ** 2 + dz * ac]
+        th = self.th0 * np.sin(self.kth * s)
+        ph = self.ph0 * np.sin(self.kph * s + 1.0) - self.ph0 * np.sin(1.0)
+        dth = self.th0 * self.kth * np.cos(self.kth * s) * sp
+        dph = self.ph0 * self.kph * np.cos(self.kph * s + 1.0) * sp
+        R, w = _euler_zyx_rates(psi, th, ph, sp * kap, dth, dph)
+        return R, p, v, a, w
+
+    # the interface used by vslam.imu.simulate and friends
+    def R(self, t):
+        return self.state(t)[0]
+
+    def p(self, t):
+        return self.state(t)[1]
+
+    def v(self, t):
+        return self.state(t)[2]
+
+    def acc(self, t):
+        return self.state(t)[3]
+
+    def omega(self, t):
+        return self.state(t)[4]
+
+    def T(self, t):
+        R, p = self.state(t)[:2]
+        return lie.make_T(R, p)

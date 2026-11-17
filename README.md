@@ -12,7 +12,7 @@ Python practical.
 | I. Foundations | 1 The SLAM problem · 2 Rigid motion and Lie groups · 3 Cameras · 4 Nonlinear least squares on manifolds | drafted |
 | II. Visual front-end | 5 Features and correspondence · 6 Two-view geometry · 7 Visual odometry | drafted |
 | III. Back-end | 8 Bundle adjustment · 9 Factor and pose graphs · 10 Loop closure · 11 Maps for a mower | drafted |
-| IV. Fusion for the garden | 12 The IMU · 13 Visual-inertial odometry · 14 Wheels and RTK-GNSS · 15 Capstone | 12 drafted |
+| IV. Fusion for the garden | 12 The IMU · 13 Visual-inertial odometry · 14 Wheels and RTK-GNSS · 15 Capstone | 12–13 drafted |
 
 ## Layout
 
@@ -81,6 +81,11 @@ cd notebooks && jupyter lab
 - `examples/ch12_imu.py` — Allan deviations of a simulated IMU, strapdown
   drift against theory, preintegration covariance against Monte Carlo,
   the first-order bias update and the discretisation error.
+- `examples/ch13_vio.py` — sliding-window VIO on a smooth mowing drive
+  with an exact IMU: against stereo VO, with the camera blind in a turn,
+  the four unobservable directions, the tilt-bias ambiguity of straight
+  rows, initialisation, and the cost of a camera-IMU time offset
+  (about 6 minutes).
 
 ## Notebooks
 
@@ -126,3 +131,7 @@ committed with their outputs, so they can be read directly on GitHub.
 - `notebooks/ch12_imu.ipynb`: specific force, noise discretisation and
   Allan deviation, strapdown drift, preintegration against direct
   integration, its covariance, and the IMU factor Jacobians.
+- `notebooks/ch13_vio.ipynb`: the drive and its IMU, the visual factor
+  Jacobians, VIO against VO on 20 s, the null space of the window
+  Hessian, tilt against accelerometer bias, the MSCKF projection, and
+  initialisation.
