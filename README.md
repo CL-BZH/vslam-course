@@ -5,6 +5,15 @@ visual-inertial fusion. The running example is a ride-on mower converted
 into an autonomous robot, but the material is general. Each chapter has full derivations in LaTeX and a from-scratch
 Python practical.
 
+## Prerequisites
+
+Linear algebra, multivariable calculus and probability at the level of a
+first graduate course, some Python, and familiarity with Bayesian
+filtering (Kalman and, ideally, particle filters). For a refresher,
+[Bayesian_Filters](https://github.com/CL-BZH/Bayesian_Filters) derives
+the grid, Kalman, extended and unscented Kalman and particle filters in
+notebooks and compares them on a simulated robot mower.
+
 ## Contents
 
 | Part | Chapters | Status |
