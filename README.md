@@ -12,7 +12,10 @@ first graduate course, some Python, and familiarity with Bayesian
 filtering (Kalman and, ideally, particle filters). For a refresher,
 [Bayesian_Filters](https://github.com/CL-BZH/Bayesian_Filters) derives
 the grid, Kalman, extended and unscented Kalman and particle filters in
-notebooks and compares them on a simulated robot mower.
+notebooks and compares them on a simulated robot mower. For the calculus
+(differentials, Newton's method, manifolds and optimisation on them),
+[Advanced Calculus for Machine Learning](https://github.com/CL-BZH/advanced-calculus-for-ml)
+is the natural background for Chapters 2 and 4.
 
 ## Contents
 
