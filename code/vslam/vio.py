@@ -151,6 +151,7 @@ class SlidingWindowVIO:
         self.times: list[float] = []
         self.pre: list[imu.Preintegration] = []   # pre[k]: kf k -> k + 1
         self.obs: list[dict[int, np.ndarray]] = []
+        self.unary: list[list] = []                # other factors per kf
         self.points: dict[int, np.ndarray] = {}
         self.prior: Prior | None = None
         self.history: dict[int, KFState] = {}     # last estimate per kf
@@ -159,15 +160,17 @@ class SlidingWindowVIO:
 
     # ------------------------------------------------------------ setup
     def initialise(self, t: float, state: KFState, sigmas: np.ndarray,
-                   track_ids: np.ndarray, z: np.ndarray) -> None:
+                   track_ids: np.ndarray, z: np.ndarray,
+                   unary: list | None = None) -> None:
         """First keyframe with a diagonal prior of standard deviations
         `sigmas` (15) on its state."""
-        self._append(t, state, track_ids, z)
+        self._append(t, state, track_ids, z, unary)
         H = np.diag(1.0 / np.asarray(sigmas, float) ** 2)
         self.prior = Prior([self.ids[0]], H, np.zeros(NX), [state.copy()])
 
-    def _append(self, t, state, track_ids, z) -> None:
+    def _append(self, t, state, track_ids, z, unary=None) -> None:
         self.kfs.append(state)
+        self.unary.append(list(unary or []))
         self.ids.append(self._next_id)
         self._next_id += 1
         self.times.append(t)
@@ -200,9 +203,12 @@ class SlidingWindowVIO:
 
     # ------------------------------------------------------------ input
     def add_keyframe(self, t: float, gyro: np.ndarray, accel: np.ndarray,
-                     track_ids: np.ndarray, z: np.ndarray) -> KFState:
+                     track_ids: np.ndarray, z: np.ndarray,
+                     unary: list | None = None) -> KFState:
         """IMU samples since the previous keyframe, and the stereo
-        measurements of the new keyframe. Returns the estimate."""
+        measurements of the new keyframe; `unary` are other factors on the
+        new keyframe's state alone (wheels, GNSS: Chapter 14). Returns the
+        estimate."""
         last = self.kfs[-1]
         pre = imu.Preintegration(last.bg.copy(), last.ba.copy(), self.prm)
         for w, a in zip(gyro, accel):
@@ -212,7 +218,7 @@ class SlidingWindowVIO:
         self.pre.append(pre)
         # observations of points already in the window are kept; new ones
         # are triangulated from the predicted pose
-        self._append(t, state, track_ids, z)
+        self._append(t, state, track_ids, z, unary)
         self.optimise()
         self._reject_outliers()
         for gid, s in zip(self.ids, self.kfs):
@@ -265,6 +271,24 @@ class SlidingWindowVIO:
         rr = np.r_[L.T @ r, np.r_[sj.bg - si.bg, sj.ba - si.ba] / sb]
         return rr, Ji, Jj
 
+    def _unary_terms(self, kfs, ks=None):
+        """Unary factors of keyframes ks: (k, weighted r, J, cost) with
+        whitened residuals and their robust kernels. A factor is a callable
+        state -> (r, J) with an attribute `kernel` (None: least squares)."""
+        out = []
+        ks = range(len(kfs)) if ks is None else ks
+        for k in ks:
+            for f in self.unary[k]:
+                r, J = f(kfs[k])
+                s = float(r @ r)
+                kern = getattr(f, "kernel", None)
+                if kern is None:
+                    w, c = 1.0, s
+                else:
+                    w, c = float(kern.weight(s)), float(kern.rho(s))
+                out.append((k, r, J, w, c))
+        return out
+
     def _prior_terms(self, kfs):
         """Prior cost, gradient and Hessian in window coordinates."""
         P = self.prior
@@ -289,6 +313,7 @@ class SlidingWindowVIO:
             for k in range(len(kfs) - 1):
                 r, _, _ = self._imu_factor(k, kfs)
                 F += 0.5 * r @ r
+        F += sum(0.5 * c for *_, c in self._unary_terms(kfs))
         F += self._prior_terms(kfs)[0]
         return F
 
@@ -338,6 +363,10 @@ class SlidingWindowVIO:
                 J[:, NX * (k + 1):NX * (k + 2)] = Jj
                 Hs += J.T @ J
                 gs += J.T @ r
+        for k, r, J, w, _ in self._unary_terms(kfs):
+            sl = slice(NX * k, NX * k + NX)
+            Hs[sl, sl] += w * J.T @ J
+            gs[sl] += w * J.T @ r
         if use_prior and self.prior is not None:
             _, g0, H0, pos = self._prior_terms(kfs)
             idx = np.concatenate([np.arange(NX * k, NX * k + NX)
@@ -401,6 +430,27 @@ class SlidingWindowVIO:
             if i not in seen:
                 del self.points[i]
 
+    def transform(self, Q: np.ndarray, t: np.ndarray) -> None:
+        """Move the whole window by x -> Q x + t, Q a rotation about the
+        vertical: a symmetry of the cost (Theorem 13.3), used to align the
+        window to another frame (Chapter 14). The prior's linearisation
+        point moves too, and since its velocity coordinates v - v0 rotate
+        with Q, its blocks are rotated: H -> M H M^T, g -> M g."""
+        def tr(s):
+            return KFState(Q @ s.R, Q @ s.v, Q @ s.p + t, s.bg.copy(),
+                           s.ba.copy())
+        self.kfs = [tr(s) for s in self.kfs]
+        self.points = {i: Q @ X + t for i, X in self.points.items()}
+        self.history = {i: tr(s) for i, s in self.history.items()}
+        if self.prior is not None:
+            n = len(self.prior.ids)
+            M = np.eye(NX * n)
+            for k in range(n):
+                M[NX * k + 3:NX * k + 6, NX * k + 3:NX * k + 6] = Q
+            self.prior = Prior(self.prior.ids, M @ self.prior.H @ M.T,
+                               M @ self.prior.g,
+                               [tr(s) for s in self.prior.x_lin])
+
     # ------------------------------------------------------------ marg.
     def marginalise(self) -> None:
         """Marginalise the oldest keyframe and every landmark it observes
@@ -441,6 +491,9 @@ class SlidingWindowVIO:
             J[:, :NX], J[:, NX:2 * NX] = Ji, Jj
             Hs += J.T @ J
             gs += J.T @ r
+        for _, r, J, w, _ in self._unary_terms(self.kfs, [0]):
+            Hs[:NX, :NX] += w * J.T @ J
+            gs[:NX] += w * J.T @ r
         if self.prior is not None:
             _, g0, H0, pos = self._prior_terms(self.kfs)
             idx = np.concatenate([np.arange(NX * k, NX * k + NX)
@@ -468,6 +521,7 @@ class SlidingWindowVIO:
         self.ids.pop(0)
         self.times.pop(0)
         self.obs.pop(0)
+        self.unary.pop(0)
         if self.pre:
             self.pre.pop(0)
         # states linked to nothing in the prior are left out of it

@@ -12,7 +12,7 @@ Python practical.
 | I. Foundations | 1 The SLAM problem · 2 Rigid motion and Lie groups · 3 Cameras · 4 Nonlinear least squares on manifolds | drafted |
 | II. Visual front-end | 5 Features and correspondence · 6 Two-view geometry · 7 Visual odometry | drafted |
 | III. Back-end | 8 Bundle adjustment · 9 Factor and pose graphs · 10 Loop closure · 11 Maps for a mower | drafted |
-| IV. Fusion for the garden | 12 The IMU · 13 Visual-inertial odometry · 14 Wheels and RTK-GNSS · 15 Capstone | 12–13 drafted |
+| IV. Fusion for the garden | 12 The IMU · 13 Visual-inertial odometry · 14 Wheels and RTK-GNSS · 15 Capstone | 12–14 drafted |
 
 ## Layout
 
@@ -86,6 +86,9 @@ cd notebooks && jupyter lab
   the four unobservable directions, the tilt-bias ambiguity of straight
   rows, initialisation, and the cost of a camera-IMU time offset
   (about 6 minutes).
+- `examples/ch14_fusion.py` — wheel odometry and its drift, the wheel
+  factor in a blind turn, RTK-GNSS with canopy and multipath, the
+  lever arm, and the 4-DoF alignment of the VIO to ENU (about 7 minutes).
 
 ## Notebooks
 
@@ -135,3 +138,6 @@ committed with their outputs, so they can be read directly on GitHub.
   Jacobians, VIO against VO on 20 s, the null space of the window
   Hessian, tilt against accelerometer bias, the MSCKF projection, and
   initialisation.
+- `notebooks/ch14_fusion.ipynb`: differential drive and its heading drift,
+  dead-reckoning covariance, the wheel and GNSS factor Jacobians, geodesy,
+  heading from a straight drive, and a short VIO + wheels + GNSS run.
